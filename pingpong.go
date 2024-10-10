@@ -382,6 +382,25 @@ func (p *Pingpong) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.pool.Put(c)
 }
 
+// GetPath returns RawPath, if it's empty returns Path from URL
+// Difference between RawPath and Path is:
+//   - Path is where request path is stored. Value is stored in decoded form: /%47%6f%2f becomes /Go/.
+//   - RawPath is an optional field which only gets set if the default encoding is different from Path.
+func GetPath(r *http.Request) string {
+	path := r.URL.RawPath
+	if path == "" {
+		path = r.URL.Path
+	}
+	return path
+}
+
+// SetInternal sets error to HTTPError.Internal
+func (he *HTTPError) SetInternal(err error) *HTTPError {
+	he.Internal = err
+	return he
+}
+
+
 // DefaultHTTPErrorHandler is the default HTTP error handler. It sends a JSON response
 // with status code.
 //
@@ -433,7 +452,7 @@ func (p *Pingpong) DefaultHTTPErrorHandler(err error, c Context) {
 		err = c.JSON(code, message)
 	}
 	if err != nil {
-		p.Logger.Error(err)
+		p.Logger.Error(err.Error())
 	}
 }
 
@@ -551,4 +570,23 @@ func newListener(address, network string) (*tcpKeepAliveListener, error) {
 // go away.
 type tcpKeepAliveListener struct {
 	*net.TCPListener
+}
+
+func applyMiddleware(h HandlerFunc, middleware ...MiddlewareFunc) HandlerFunc {
+	for i := len(middleware) - 1; i >= 0; i-- {
+		h = middleware[i](h)
+	}
+	return h
+}
+
+// MethodNotAllowedHandler is the handler thar router uses in case there was no matching route found but there was
+// another matching routes for that requested URL. Returns an error that results HTTP 405 Method Not Allowed status code.
+var MethodNotAllowedHandler = func(c Context) error {
+	// See RFC 7231 section 7.4.1: An origin server MUST generate an Allow field in a 405 (Method Not Allowed)
+	// response and MAY do so in any other response. For disabled resources an empty Allow header may be returned
+	routerAllowMethods, ok := c.Get(ContextKeyHeaderAllow).(string)
+	if ok && routerAllowMethods != "" {
+		c.Response().Header().Set(HeaderAllow, routerAllowMethods)
+	}
+	return ErrMethodNotAllowed
 }
