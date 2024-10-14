@@ -29,6 +29,9 @@ type Context interface {
 	// JSON sends a JSON response with status code.
 	JSON(code int, i interface{}) error
 
+	// String sends a string response with status code.
+	String(code int, s string) error
+
 	// QueryParams returns the query parameters as `url.Values`.
 	QueryParams() url.Values
 
@@ -150,4 +153,15 @@ func (c *context) Get(key string) interface{} {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.store[key]
+}
+
+func (c *context) String(code int, s string) (err error) {
+	return c.Blob(code, MIMETextPlainCharsetUTF8, []byte(s))
+}
+
+func (c *context) Blob(code int, contentType string, b []byte) (err error) {
+	c.writeContentType(contentType)
+	c.response.WriteHeader(code)
+	_, err = c.response.Write(b)
+	return
 }

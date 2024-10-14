@@ -330,6 +330,24 @@ func (p *Pingpong) GET(path string, h HandlerFunc, m ...MiddlewareFunc) *Route {
 	return p.Add(http.MethodGet, path, h, m...)
 }
 
+// POST registers a new POST route for a path with matching handler in the
+// router with optional route-level middleware.
+func (p *Pingpong) POST(path string, h HandlerFunc, m ...MiddlewareFunc) *Route {
+	return p.Add(http.MethodPost, path, h, m...)
+}
+
+// PUT registers a new PUT route for a path with matching handler in the
+// router with optional route-level middleware.
+func (p *Pingpong) PUT(path string, h HandlerFunc, m ...MiddlewareFunc) *Route {
+	return p.Add(http.MethodPut, path, h, m...)
+}
+
+// DELETE registers a new DELETE route for a path with matching handler in the router
+// with optional route-level middleware.
+func (p *Pingpong) DELETE(path string, h HandlerFunc, m ...MiddlewareFunc) *Route {
+	return p.Add(http.MethodDelete, path, h, m...)
+}
+
 // Map defines a generic map of type `map[string]interface{}`.
 type Map map[string]interface{}
 
